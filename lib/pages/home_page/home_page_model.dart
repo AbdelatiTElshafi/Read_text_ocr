@@ -13,8 +13,6 @@ class HomePageModel extends FlutterFlowModel<HomePageWidget> {
   FFUploadedFile uploadedLocalFile_imageFromButton =
       FFUploadedFile(bytes: Uint8List.fromList([]));
 
-  // Stores action output result for [Custom Action - preprocessImage] action in CaptureImage widget.
-  FFUploadedFile? preImage;
   // Stores action output result for [Custom Action - readTextFromImage] action in CaptureImage widget.
   String? recognizedText;
 

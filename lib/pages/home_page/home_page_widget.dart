@@ -88,7 +88,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8.0),
                   child: Image.memory(
-                    _model.preImage?.bytes ?? Uint8List.fromList([]),
+                    _model.uploadedLocalFile_imageFromButton.bytes ??
+                        Uint8List.fromList([]),
                     width: 390.4,
                     height: 399.9,
                     fit: BoxFit.cover,
@@ -135,11 +136,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       }
                     }
 
-                    _model.preImage = await actions.preprocessImage(
-                      _model.uploadedLocalFile_imageFromButton,
-                    );
                     _model.recognizedText = await actions.readTextFromImage(
-                      _model.preImage!,
+                      _model.uploadedLocalFile_imageFromButton,
                     );
                     _model.recognizedTextVar = _model.recognizedText;
                     safeSetState(() {});
