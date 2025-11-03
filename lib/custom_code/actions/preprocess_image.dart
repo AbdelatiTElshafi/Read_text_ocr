@@ -10,48 +10,27 @@ import 'package:image/image.dart' as img;
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
-    // 1️⃣ قراءة الصورة الأصلية
+    // 1️⃣ قراءة الصورة
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
     // 2️⃣ تحويل للصورة الرمادية (Grayscale)
     image = img.grayscale(image);
-    image = img.adjustColor(image, saturation: 0); // تأكيد إزالة أي لون
 
-    // 3️⃣ تعديل Contrast و Brightness خفيفين لتحسين النصوص
-    image = img.adjustColor(image,
-        contrast: 1.3, // تباين متوسط
-        brightness: 0.05 // تفتيح بسيط
-        );
-
-    // 4️⃣ Erode يدوي (لتوصيل نقاط CIJ وتقوية الحروف)
-    final copy = img.copyCrop(
+    // 3️⃣ تعديل Contrast و Brightness
+    image = img.adjustColor(
       image,
-      x: 0,
-      y: 0,
-      width: image.width,
-      height: image.height,
+      contrast: 1.4, // زيادة وضوح التباين بين الحروف والخلفية
+      brightness: 0.1, // تفتيح بسيط
     );
 
-    for (int y = 1; y < image.height - 1; y++) {
-      for (int x = 1; x < image.width - 1; x++) {
-        int minLuma = 255;
-        // نقرأ مربع 3×3 حول كل بكسل
-        for (int j = -1; j <= 1; j++) {
-          for (int i = -1; i <= 1; i++) {
-            final luma = img.getLuminance(copy.getPixel(x + i, y + j)).toInt();
-            if (luma < minLuma) minLuma = luma;
-          }
-        }
-        image.setPixelRgba(x, y, minLuma, minLuma, minLuma, 255);
-      }
-    }
-
-    // 5️⃣ تحويل الصورة الناتجة إلى بايتات وإرجاعها
+    // 4️⃣ تحويل الصورة لبايتات وإرجاعها
     final outBytes = img.encodeJpg(image, quality: 95);
     return FFUploadedFile(
-      name: imageFile.name != null ? 'eroded_${imageFile.name}' : 'eroded.jpg',
+      name: imageFile.name != null
+          ? 'gray_contrast_${imageFile.name}'
+          : 'gray_contrast.jpg',
       bytes: outBytes,
     );
   } catch (e) {
