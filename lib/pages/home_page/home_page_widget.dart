@@ -83,16 +83,18 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Padding(
-                padding: EdgeInsets.all(10.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.memory(
-                    _model.uploadedLocalFile_imageFromButton.bytes ??
-                        Uint8List.fromList([]),
-                    width: 390.4,
-                    height: 399.9,
-                    fit: BoxFit.cover,
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(10.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8.0),
+                    child: Image.memory(
+                      _model.uploadedLocalFile_imageFromButton.bytes ??
+                          Uint8List.fromList([]),
+                      width: 390.4,
+                      height: 399.9,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
