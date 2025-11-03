@@ -12,28 +12,21 @@ import 'package:path_provider/path_provider.dart';
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
-    // 🔹 قراءة الصورة الأصلية من UploadedFile
+    // 🟢 قراءة الصورة الأصلية
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
-    // 1️⃣ تحويل الصورة إلى Grayscale
+    // 1️⃣ تحويل إلى Grayscale
     image = img.grayscale(image);
 
-    // 2️⃣ زيادة الـ Contrast والـ Brightness لتحسين وضوح النقاط
-    image = img.adjustColor(
-      image,
-      contrast: 2.0, // contrast أعلى لتجميع النقاط الصغيرة
-      brightness: 0.05, // تفتيح بسيط للصورة
-    );
-
-    // 3️⃣ فلتر Sharpen لتوضيح الحروف الدقيقة المطبوعة
+    // 2️⃣ Sharpen بسيط (بدون تحويل قوي)
     final sharpenKernel = [
       0,
       -1,
       0,
       -1,
-      5,
+      4,
       -1,
       0,
       -1,
@@ -44,43 +37,27 @@ Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
       image,
       filter: sharpenKernel,
       div: 1.0,
-      offset: 0,
+      offset: 128, // ✅ نضيف Offset بسيط علشان الصورة متسودش
       maskChannel: img.Channel.luminance,
     );
 
-    // 4️⃣ Adaptive Threshold (يتأقلم مع الإضاءة)
-    int sumLuma = 0;
-    int count = 0;
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final luma =
-            img.getLuminance(image.getPixel(x, y)).toInt(); // ✅ cast هنا
-        sumLuma += luma;
-        count++;
-      }
-    }
+    // 3️⃣ Contrast و Brightness معتدلين
+    image = img.adjustColor(
+      image,
+      contrast: 1.5, // أقل من 2.0 علشان ميولعش
+      brightness: 0.1, // تفتيح خفيف
+    );
 
-    final avgLuma = (sumLuma ~/ count);
-    final thresholdValue =
-        (avgLuma - 15).clamp(60, 180); // قيمة آمنة بين 60 و180
+    // ❌ مفيش Threshold هنا علشان متطلعش سودا
 
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final pixel = image.getPixel(x, y);
-        final luma = img.getLuminance(pixel).toInt(); // ✅ cast هنا كمان
-        final value = luma < thresholdValue ? 0 : 255;
-        image.setPixelRgba(x, y, value, value, value, 255);
-      }
-    }
-
-    // 5️⃣ حفظ الصورة الناتجة مؤقتًا
+    // 4️⃣ حفظ الصورة الناتجة مؤقتًا
     final tempDir = await getTemporaryDirectory();
     final processedPath =
         '${tempDir.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final processedFile = File(processedPath);
     await processedFile.writeAsBytes(img.encodeJpg(image, quality: 95));
 
-    // 6️⃣ قراءة الصورة الناتجة وإرجاعها كـ UploadedFile
+    // 5️⃣ إرجاع الصورة كـ FFUploadedFile
     final processedBytes = await processedFile.readAsBytes();
     return FFUploadedFile(
       name: imageFile.name != null
@@ -90,6 +67,6 @@ Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
     );
   } catch (e) {
     print('Error preprocessing image: $e');
-    return imageFile; // fallback: نرجع الأصل لو حصل خطأ
+    return imageFile; // fallback لو حصل خطأ
   }
 }
