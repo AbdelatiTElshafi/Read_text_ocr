@@ -10,15 +10,18 @@ import 'package:image/image.dart' as img;
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
-    // 1️⃣ قراءة الصورة الأصلية
+    // 1) اقرأ الصورة
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
-    // 2️⃣ تحويل للصورة الرمادية (Grayscale)
+    // 2) إجبارها رمادي بطريقتين (لضمان النتيجة):
+    //   - grayscale (يحسِب اللّمينانس)
+    //   - saturation=0 (يلغي أي “صبغة” باقيه)
     image = img.grayscale(image);
+    image = img.adjustColor(image, saturation: 0);
 
-    // 3️⃣ فلتر Sharpen خفيف لتجميع النقاط المنقطة (CIJ)
+    // 3) Sharpen خفيف (ب انحياز صفري عشان ما يغمّقش الخلفية)
     final sharpenKernel = [
       0,
       -1,
@@ -38,39 +41,20 @@ Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
       maskChannel: img.Channel.luminance,
     );
 
-    // 4️⃣ ضبط Contrast وBrightness
-    image = img.adjustColor(
-      image,
-      contrast: 1.4, // تباين متوسط
-      brightness: 0.1, // تفتيح خفيف
-    );
+    // 4) Contrast بسيط جدًا + Brightness خفيف
+    image = img.adjustColor(image,
+        contrast: 1.25, // خفيف
+        brightness: 0.05 // خفيف
+        );
 
-    // 5️⃣ Erode يدوي (توصيل النقاط الصغيرة وتقوية الحروف)
-    final copy = img.copyResize(image); // ننسخ الصورة لقراءتها
-    for (int y = 1; y < image.height - 1; y++) {
-      for (int x = 1; x < image.width - 1; x++) {
-        int minLuma = 255;
-        // نقرأ 3x3 جيران
-        for (int j = -1; j <= 1; j++) {
-          for (int i = -1; i <= 1; i++) {
-            final luma = img.getLuminance(copy.getPixel(x + i, y + j)).toInt();
-            if (luma < minLuma) minLuma = luma;
-          }
-        }
-        image.setPixelRgba(x, y, minLuma, minLuma, minLuma, 255);
-      }
-    }
-
-    // 6️⃣ تحويل الصورة النهائية لبايتات وإرجاعها كـ UploadedFile
+    // 5) إرجاع الصورة (JPG رمادي – r=g=b)
     final outBytes = img.encodeJpg(image, quality: 95);
     return FFUploadedFile(
-      name: imageFile.name != null
-          ? 'enhanced_${imageFile.name}'
-          : 'enhanced.jpg',
+      name: imageFile.name != null ? 'gray_${imageFile.name}' : 'gray.jpg',
       bytes: outBytes,
     );
   } catch (e) {
-    print('Error preprocessing image: $e');
-    return imageFile; // fallback في حالة الخطأ
+    print('Preprocess error: $e');
+    return imageFile;
   }
 }
