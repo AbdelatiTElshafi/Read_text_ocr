@@ -143,7 +143,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       _model.uploadedLocalFile_imageFromButton,
                     );
                     _model.recognizedText = await actions.readTextFromImage(
-                      _model.uploadedLocalFile_imageFromButton,
+                      _model.processedImage!,
                     );
                     _model.recognizedTextVar = _model.recognizedText;
                     safeSetState(() {});
