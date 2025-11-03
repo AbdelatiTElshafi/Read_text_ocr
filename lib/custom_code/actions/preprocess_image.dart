@@ -10,18 +10,36 @@ import 'package:image/image.dart' as img;
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
-    // 1) اقرأ الصورة
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
-    // 2) إجبارها رمادي بطريقتين (لضمان النتيجة):
-    //   - grayscale (يحسِب اللّمينانس)
-    //   - saturation=0 (يلغي أي “صبغة” باقيه)
+    // 1️⃣ Grayscale
     image = img.grayscale(image);
-    image = img.adjustColor(image, saturation: 0);
 
-    // 3) Sharpen خفيف (ب انحياز صفري عشان ما يغمّقش الخلفية)
+    // 2️⃣ Normalize القيم بين 60 و230 (نمنع الحرق)
+    int minL = 255, maxL = 0;
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final l = img.getLuminance(image.getPixel(x, y)).toInt();
+        if (l < minL) minL = l;
+        if (l > maxL) maxL = l;
+      }
+    }
+    final range = (maxL - minL).clamp(1, 255);
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final l = img.getLuminance(image.getPixel(x, y)).toInt();
+        int norm = (((l - minL) * 170) ~/ range) + 60; // normalize 60–230
+        norm = norm.clamp(0, 255);
+        image.setPixelRgba(x, y, norm, norm, norm, 255);
+      }
+    }
+
+    // 3️⃣ Contrast خفيف جدًا
+    image = img.adjustColor(image, contrast: 1.1, brightness: 0.05);
+
+    // 4️⃣ Sharpen بسيط مع offset لتجنب السواد
     final sharpenKernel = [
       0,
       -1,
@@ -36,25 +54,19 @@ Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
     image = img.convolution(
       image,
       filter: sharpenKernel,
-      div: 1.0,
-      offset: 0,
+      div: 3.0, // نخفف قوة الفلتر
+      offset: 64, // نرفع الإضاءة عشان ميحرقش
       maskChannel: img.Channel.luminance,
     );
 
-    // 4) Contrast بسيط جدًا + Brightness خفيف
-    image = img.adjustColor(image,
-        contrast: 1.25, // خفيف
-        brightness: 0.05 // خفيف
-        );
-
-    // 5) إرجاع الصورة (JPG رمادي – r=g=b)
+    // 5️⃣ نرجّع الصورة الرمادية الجديدة
     final outBytes = img.encodeJpg(image, quality: 95);
     return FFUploadedFile(
-      name: imageFile.name != null ? 'gray_${imageFile.name}' : 'gray.jpg',
+      name: 'normalized_${imageFile.name ?? "image.jpg"}',
       bytes: outBytes,
     );
   } catch (e) {
-    print('Preprocess error: $e');
+    print('Error preprocessing image: $e');
     return imageFile;
   }
 }
