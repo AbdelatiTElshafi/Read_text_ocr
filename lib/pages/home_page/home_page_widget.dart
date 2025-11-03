@@ -212,6 +212,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                     .bodyMedium
                                     .fontStyle,
                               ),
+                              color: Colors.black,
                               letterSpacing: 0.0,
                               fontWeight: FlutterFlowTheme.of(context)
                                   .bodyMedium
