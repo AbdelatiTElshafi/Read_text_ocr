@@ -99,10 +99,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               ),
               FFButtonWidget(
                 onPressed: () async {
-                  final selectedMedia = await selectMediaWithSourceBottomSheet(
-                    context: context,
+                  final selectedMedia = await selectMedia(
                     imageQuality: 100,
-                    allowPhoto: true,
+                    multiImage: false,
                   );
                   if (selectedMedia != null &&
                       selectedMedia.every(
@@ -138,6 +137,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   _model.recognizedText = await actions.readTextFromImage(
                     _model.uploadedLocalFile_imageFromButton,
                   );
+                  _model.recognizedTextVar = _model.recognizedText;
+                  safeSetState(() {});
 
                   safeSetState(() {});
                 },
