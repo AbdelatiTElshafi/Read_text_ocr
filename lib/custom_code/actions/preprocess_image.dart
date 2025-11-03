@@ -10,36 +10,16 @@ import 'package:image/image.dart' as img;
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
+    // 1️⃣ قراءة الصورة
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
-    // 1️⃣ Grayscale
+    // 2️⃣ تحويل إلى رمادي (Grayscale)
     image = img.grayscale(image);
+    image = img.adjustColor(image, saturation: 0); // تأكيد إزالة أي لون متبقي
 
-    // 2️⃣ Normalize القيم بين 60 و230 (نمنع الحرق)
-    int minL = 255, maxL = 0;
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final l = img.getLuminance(image.getPixel(x, y)).toInt();
-        if (l < minL) minL = l;
-        if (l > maxL) maxL = l;
-      }
-    }
-    final range = (maxL - minL).clamp(1, 255);
-    for (int y = 0; y < image.height; y++) {
-      for (int x = 0; x < image.width; x++) {
-        final l = img.getLuminance(image.getPixel(x, y)).toInt();
-        int norm = (((l - minL) * 170) ~/ range) + 60; // normalize 60–230
-        norm = norm.clamp(0, 255);
-        image.setPixelRgba(x, y, norm, norm, norm, 255);
-      }
-    }
-
-    // 3️⃣ Contrast خفيف جدًا
-    image = img.adjustColor(image, contrast: 1.1, brightness: 0.05);
-
-    // 4️⃣ Sharpen بسيط مع offset لتجنب السواد
+    // 3️⃣ Sharpen بسيط باستخدام convolution (الطريقة الصحيحة في image 4.x)
     final sharpenKernel = [
       0,
       -1,
@@ -54,15 +34,23 @@ Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
     image = img.convolution(
       image,
       filter: sharpenKernel,
-      div: 3.0, // نخفف قوة الفلتر
-      offset: 64, // نرفع الإضاءة عشان ميحرقش
+      div: 1.0,
+      offset: 0,
       maskChannel: img.Channel.luminance,
     );
 
-    // 5️⃣ نرجّع الصورة الرمادية الجديدة
+    // 4️⃣ رفع Contrast وBrightness خفيفين لتحسين الوضوح
+    image = img.adjustColor(image,
+        contrast: 1.3, // معتدل جدًا
+        brightness: 0.05 // تفتيح بسيط
+        );
+
+    // 5️⃣ إرجاع الصورة النهائية كـ UploadedFile
     final outBytes = img.encodeJpg(image, quality: 95);
     return FFUploadedFile(
-      name: 'normalized_${imageFile.name ?? "image.jpg"}',
+      name: imageFile.name != null
+          ? 'processed_${imageFile.name}'
+          : 'processed.jpg',
       bytes: outBytes,
     );
   } catch (e) {
