@@ -102,9 +102,11 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 padding: EdgeInsetsDirectional.fromSTEB(0.0, 10.0, 0.0, 0.0),
                 child: FFButtonWidget(
                   onPressed: () async {
-                    final selectedMedia = await selectMedia(
+                    final selectedMedia =
+                        await selectMediaWithSourceBottomSheet(
+                      context: context,
                       imageQuality: 100,
-                      multiImage: false,
+                      allowPhoto: true,
                     );
                     if (selectedMedia != null &&
                         selectedMedia.every((m) =>
