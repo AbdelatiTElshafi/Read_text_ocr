@@ -6,35 +6,35 @@ import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
+import 'index.dart'; // Imports other custom actions
+
 import 'package:image/image.dart' as img;
 
 Future<FFUploadedFile> preprocessImage(FFUploadedFile imageFile) async {
   try {
-    // 1️⃣ قراءة الصورة
+    // 1️⃣ قراءة الصورة الأصلية
     final bytes = imageFile.bytes!;
     img.Image? image = img.decodeImage(bytes);
     if (image == null) throw Exception('Invalid image data');
 
-    // 2️⃣ تحويل للصورة الرمادية (Grayscale)
+    // 2️⃣ تحويل الصورة إلى رمادي (Grayscale)
     image = img.grayscale(image);
 
-    // 3️⃣ تعديل Contrast و Brightness
+    // 3️⃣ زيادة التباين + تفتيح بسيط
     image = img.adjustColor(
       image,
-      contrast: 1.4, // زيادة وضوح التباين بين الحروف والخلفية
-      brightness: 0.1, // تفتيح بسيط
+      contrast: 3.0, // تباين عالي لتوضيح النصوص
+      brightness: 0.05, // تفتيح بسيط لو الصورة غامقة
     );
 
-    // 4️⃣ تحويل الصورة لبايتات وإرجاعها
+    // 4️⃣ تحويل الصورة لبايتات وإرجاعها كـ UploadedFile
     final outBytes = img.encodeJpg(image, quality: 95);
     return FFUploadedFile(
-      name: imageFile.name != null
-          ? 'gray_contrast_${imageFile.name}'
-          : 'gray_contrast.jpg',
+      name: 'gray_contrast_${imageFile.name ?? "image.jpg"}',
       bytes: outBytes,
     );
   } catch (e) {
-    print('Error preprocessing image: $e');
+    print('Error in grayscale+contrast preprocess: $e');
     return imageFile;
   }
 }
